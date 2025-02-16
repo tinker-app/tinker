@@ -9,9 +9,13 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.cardview.widget.CardView;
 import androidx.appcompat.app.AppCompatActivity;
+import com.bumptech.glide.Glide;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -27,71 +31,148 @@ public class MainActivity extends AppCompatActivity {
     private CardView cardView;
     private GestureDetector gestureDetector;
 
+    // Product data
+    private List<Product> productList;
+    private int currentProductIndex = 0;
+    private String currentCategory = "";
+
     @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Initialize home layout views
-        homeLayout = findViewById(R.id.homeLayout);
-        buttonLaptops = findViewById(R.id.buttonLaptops);
-        buttonPhones = findViewById(R.id.buttonPhones);
-        buttonTablets = findViewById(R.id.buttonTablets);
+        // Initialize views
+        initializeViews();
 
-        // Initialize product layout views
-        productName = findViewById(R.id.productName);
-        productDetails = findViewById(R.id.productDetails);
-        productPrice = findViewById(R.id.productPrice);
-        productImage = findViewById(R.id.productImage);
-        cardView = findViewById(R.id.cardView);
+        // Initialize product list (replace with API/database data later)
+        initializeProductList();
 
-        // Set sample product details for now
-        String name = "Product XYZ";
-        String details = "This is a high-end product with exceptional performance.";
-        String price = "$499.99";
-
-        productName.setText(name);
-        productDetails.setText(details);
-        productPrice.setText(price);
-        setProductImage(R.drawable.lenovo);
-
-        // Initialize swipe gesture detector for product card
+        // Initialize swipe gesture detector
         gestureDetector = new GestureDetector(this, new SwipeGestureListener());
         cardView.setOnTouchListener((v, event) -> {
             gestureDetector.onTouchEvent(event);
             return true;
         });
 
-        // Set click listeners for category buttons on the home screen
+        // Set click listeners for category buttons
         buttonLaptops.setOnClickListener(v -> {
-            // Optionally, store the selected category (e.g., "laptops")
+            currentCategory = "laptops";
             switchToProductView();
         });
-
         buttonPhones.setOnClickListener(v -> {
-            // Optionally, store the selected category (e.g., "phones")
+            currentCategory = "phones";
+            switchToProductView();
+        });
+        buttonTablets.setOnClickListener(v -> {
+            currentCategory = "tablets";
             switchToProductView();
         });
 
-        buttonTablets.setOnClickListener(v -> {
-            // Optionally, store the selected category (e.g., "tablets")
-            switchToProductView();
-        });
+        // Load the first product
+        loadProduct(currentProductIndex);
     }
 
-    // Method to switch from home view to product view
+    private void initializeViews() {
+        homeLayout = findViewById(R.id.homeLayout);
+        buttonLaptops = findViewById(R.id.buttonLaptops);
+        buttonPhones = findViewById(R.id.buttonPhones);
+        buttonTablets = findViewById(R.id.buttonTablets);
+        productName = findViewById(R.id.productName);
+        productDetails = findViewById(R.id.productDetails);
+        productPrice = findViewById(R.id.productPrice);
+        productImage = findViewById(R.id.productImage);
+        cardView = findViewById(R.id.cardView);
+    }
+
+    private void initializeProductList() {
+        productList = new ArrayList<>();
+
+        // Sample data using the new Product class structure
+        productList.add(new Product(
+                "laptop1",
+                "ThinkPad X1 Carbon",
+                "Laptop",
+                "Lenovo",
+                1299.99,
+                2024,
+                "laptop1.png",
+                "https://example.com/products/thinkpad-x1"
+        ));
+
+        productList.add(new Product(
+                "phone1",
+                "Galaxy S24 Ultra",
+                "Phone",
+                "Samsung",
+                1199.99,
+                2024,
+                "https://example.com/galaxy-s24.jpg",
+                "https://example.com/products/galaxy-s24"
+        ));
+
+        productList.add(new Product(
+                "tablet1",
+                "iPad Pro 12.9",
+                "Tablet",
+                "Apple",
+                1099.99,
+                2024,
+                "https://example.com/ipad-pro.jpg",
+                "https://example.com/products/ipad-pro"
+        ));
+    }
+
     private void switchToProductView() {
         homeLayout.setVisibility(View.GONE);
         cardView.setVisibility(View.VISIBLE);
+        // Filter products by category and reset index
+        currentProductIndex = 0;
+        loadProduct(currentProductIndex);
     }
 
-    // Setter method to set the image in the ImageView
-    private void setProductImage(int drawableId) {
-        productImage.setImageResource(drawableId);
+    private void loadProduct(int index) {
+        List<Product> filteredProducts = getFilteredProducts();
+
+        if (index >= 0 && index < filteredProducts.size()) {
+            Product product = filteredProducts.get(index);
+            productName.setText(product.getName());
+
+            // Combine product details into a single string
+            String details = String.format("%s\nBrand: %s\nCategory: %s\nRelease Year: %d",
+                    product.getName(),
+                    product.getBrand(),
+                    product.getCategory(),
+                    product.getReleaseYear());
+            productDetails.setText(details);
+
+            // Format price with two decimal places
+            productPrice.setText(String.format("$%.2f", product.getPrice()));
+
+            // Load image using Glide
+            Glide.with(this)
+                    .load(product.getImageUrl())
+                    .placeholder(R.drawable.laptop1)
+                    .into(productImage);
+        } else {
+            Toast.makeText(this, "No more products available", Toast.LENGTH_SHORT).show();
+        }
     }
 
-    // Swipe Gesture Listener to detect left or right swipe
+    private List<Product> getFilteredProducts() {
+        if (currentCategory.isEmpty()) {
+            return productList;
+        }
+
+        List<Product> filtered = new ArrayList<>();
+        for (Product product : productList) {
+            if (product.getCategory().equals(currentCategory)) {
+                filtered.add(product);
+            }
+        }
+        return filtered;
+    }
+
     private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
         private static final int SWIPE_THRESHOLD = 100;
         private static final int SWIPE_VELOCITY_THRESHOLD = 100;
@@ -106,7 +187,6 @@ public class MainActivity extends AppCompatActivity {
             float diffX = e2.getX() - e1.getX();
             float diffY = e2.getY() - e1.getY();
 
-            // Check if the swipe is mostly horizontal
             if (Math.abs(diffX) > Math.abs(diffY)) {
                 if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
                     if (diffX > 0) {
@@ -121,43 +201,50 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // Handle swipe right
     private void onSwipeRight() {
-        animateSwipe(1000f); // Swipe right animation
-        loadNextProduct();
+        List<Product> filteredProducts = getFilteredProducts();
+        if (!filteredProducts.isEmpty()) {
+            animateSwipe(1000f);
+            currentProductIndex = (currentProductIndex - 1 + filteredProducts.size()) % filteredProducts.size();
+            loadProduct(currentProductIndex);
+        }
     }
 
-    // Handle swipe left
     private void onSwipeLeft() {
-        animateSwipe(-1000f); // Swipe left animation
-        loadNextProduct();
+        List<Product> filteredProducts = getFilteredProducts();
+        if (!filteredProducts.isEmpty()) {
+            animateSwipe(-1000f);
+            currentProductIndex = (currentProductIndex + 1) % filteredProducts.size();
+            loadProduct(currentProductIndex);
+        }
     }
 
-    // Animate the card swipe and then load next product
     private void animateSwipe(float translationX) {
         cardView.animate()
                 .translationX(translationX)
+                .rotation(translationX > 0 ? 15 : -15)
                 .alpha(0f)
                 .setDuration(300)
                 .withEndAction(() -> {
                     cardView.setTranslationX(0);
+                    cardView.setRotation(0);
                     cardView.setAlpha(1f);
-                    loadNextProduct();
                 })
                 .start();
     }
 
-    // Simulated method to load the next product (replace with dynamic loading later)
-    private void loadNextProduct() {
-        String name = "Product ABC";
-        String details = "This is another high-quality product with better features.";
-        String price = "$699.99";
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putInt("currentProductIndex", currentProductIndex);
+        outState.putString("currentCategory", currentCategory);
+    }
 
-        productName.setText(name);
-        productDetails.setText(details);
-        productPrice.setText(price);
-
-        // Change image to template or another image as needed
-        setProductImage(R.drawable.template);
+    @Override
+    protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        currentProductIndex = savedInstanceState.getInt("currentProductIndex");
+        currentCategory = savedInstanceState.getString("currentCategory");
+        loadProduct(currentProductIndex);
     }
 }
