@@ -13,6 +13,9 @@ import androidx.annotation.NonNull;
 import androidx.cardview.widget.CardView;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.FirebaseFirestore;
+
 public class MainActivity extends AppCompatActivity {
 
     // Home layout views
@@ -26,12 +29,21 @@ public class MainActivity extends AppCompatActivity {
     private ImageView productImage;
     private CardView cardView;
     private GestureDetector gestureDetector;
+    private FirebaseFirestore db;
+    private CollectionReference productRef;
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        db = FirebaseFirestore.getInstance();
+        productRef = db.collection("phones");
+
+        productRef.addSnapshotListener((value, error) -> {
+
+        });
 
         // Initialize home layout views
         homeLayout = findViewById(R.id.homeLayout);
@@ -54,7 +66,7 @@ public class MainActivity extends AppCompatActivity {
         productName.setText(name);
         productDetails.setText(details);
         productPrice.setText(price);
-        setProductImage(R.drawable.lenovo);
+        // setProductImage(R.drawable.lenovo);
 
         // Initialize swipe gesture detector for product card
         gestureDetector = new GestureDetector(this, new SwipeGestureListener());
