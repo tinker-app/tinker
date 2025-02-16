@@ -7,9 +7,12 @@
 /.idea/workspace.xml
 /.idea/navEditor.xml
 /.idea/assetWizardSettings.xml
+/.idea
 .DS_Store
 /build
 /captures
 .externalNativeBuild
 .cxx
 local.properties
+
+services/tinker-db-firebase-adminsdk-fbsvc-0afa7f0028.json
