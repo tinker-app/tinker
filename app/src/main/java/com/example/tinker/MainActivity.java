@@ -19,6 +19,8 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -28,14 +30,13 @@ import com.google.android.gms.tasks.Tasks;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class MainActivity extends AppCompatActivity {
 
     private FirebaseFirestore db;
     private LinearLayout homeLayout;
     private Button buttonLaptops, buttonPhones, buttonTablets;
-    private ImageButton buttonBack;
+    private ImageButton buttonBack, cartButton;
     private TextView productName, productPrice;
     private ImageView productImage;
     private CardView cardView;
@@ -48,12 +49,16 @@ public class MainActivity extends AppCompatActivity {
     private RecommendationEngine laptops_engine;
     private RecommendationEngine phones_engine;
     private RecommendationEngine tablets_engine;
+    private List<Product> cart;
+    private CartAdapter cartAdapter;
+    private RecyclerView cartRecyclerView;
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        cart = new ArrayList<>();
 
         // Initialize views
         homeLayout = findViewById(R.id.homeLayout);
@@ -65,6 +70,13 @@ public class MainActivity extends AppCompatActivity {
         productName = findViewById(R.id.productName);
         productImage = findViewById(R.id.productImage);
         productPrice = findViewById(R.id.productPrice);
+        cartButton = findViewById(R.id.cartButton);
+        cartRecyclerView = findViewById(R.id.cartRecyclerView);
+
+        // Setup RecyclerView for cart
+        cartAdapter = new CartAdapter(cart);
+        cartRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        cartRecyclerView.setAdapter(cartAdapter);
 
         // Initialize lists and Firestore
         laptopsList = new ArrayList<>();
@@ -72,28 +84,20 @@ public class MainActivity extends AppCompatActivity {
         tabletsList = new ArrayList<>();
         db = FirebaseFirestore.getInstance();
 
-        // Disable buttons until data is loaded
         setButtonsEnabled(false);
-
-        // Load data asynchronously
         loadData().addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
-                // Initialize recommendation engines after data is loaded
                 SVD svd = new SVD(laptopsList, phonesList, tabletsList);
                 laptops_engine = new RecommendationEngine(svd.getLaptopLatentFactors(), laptopsList);
                 phones_engine = new RecommendationEngine(svd.getPhoneLatentFactors(), phonesList);
                 tablets_engine = new RecommendationEngine(svd.getTabletLatentFactors(), tabletsList);
-
-                // Enable buttons after everything is initialized
                 setButtonsEnabled(true);
                 Log.d("Success", "Data loaded and recommendation engines initialized successfully.");
             } else {
                 Log.e("Error", "Failed to load data", task.getException());
-                // Handle error - maybe show a message to user
             }
         });
 
-        // Setup gesture detector and button click listeners
         setupGestureDetector();
         setupButtonListeners();
     }
@@ -177,6 +181,9 @@ public class MainActivity extends AppCompatActivity {
             cardView.setVisibility(View.GONE); // Hide product screen
             homeLayout.setVisibility(View.VISIBLE); // Show category selection
         });
+
+        // Show Cart when cart icon is clicked
+        cartButton.setOnClickListener(view -> toggleCartVisibility());
     }
 
     @SuppressLint("DefaultLocale")
@@ -245,12 +252,15 @@ public class MainActivity extends AppCompatActivity {
         animateSwipe(1000f, () -> {
             if (category.equals("laptops")) {
                 laptops_engine.handleSwipe(product, true);
+                addProductToCart(product);
                 loadProduct(laptops_engine.getRecommendedProduct());
             } else if (category.equals("tablets")) {
                 tablets_engine.handleSwipe(product, true);
+                addProductToCart(product);
                 loadProduct(tablets_engine.getRecommendedProduct());
             } else if (category.equals("phones")) {
                 phones_engine.handleSwipe(product, true);
+                addProductToCart(product);
                 loadProduct(phones_engine.getRecommendedProduct());
             }
             Log.d("Product Loaded", product.getName());
@@ -298,4 +308,23 @@ public class MainActivity extends AppCompatActivity {
                 })
                 .start();
     }
+    private void addProductToCart(Product product) {
+        cart.add(product);
+        cartAdapter.notifyDataSetChanged();
+    }
+
+    private void toggleCartVisibility() {
+        if (cartRecyclerView.getVisibility() == View.GONE) {
+            cartRecyclerView.setVisibility(View.VISIBLE);
+            productImage.setVisibility(View.GONE);
+            productName.setVisibility(View.GONE);
+            productPrice.setVisibility(View.GONE);
+        } else {
+            cartRecyclerView.setVisibility(View.GONE);
+            productImage.setVisibility(View.VISIBLE);
+            productName.setVisibility(View.VISIBLE);
+            productPrice.setVisibility(View.VISIBLE);
+        }
+    }
 }
+
