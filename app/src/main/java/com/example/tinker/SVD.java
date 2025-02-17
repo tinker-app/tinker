@@ -11,7 +11,7 @@ public class SVD {
     private RealMatrix laptop_latent_factors;
     private RealMatrix phone_latent_factors;
     private RealMatrix tablet_latent_factors;
-    public void precomputeSVD(List<Product> laptops, List<Product> phones, List<Product> tablets) {
+    public SVD(List<Product> laptops, List<Product> phones, List<Product> tablets) {
         RealMatrix A = MatrixUtils.createRealMatrix(DataProcessor.getProductFeatureMatrix(laptops));
         SingularValueDecomposition svd = new SingularValueDecomposition(A);
         laptop_latent_factors = svd.getU();
@@ -20,16 +20,20 @@ public class SVD {
         svd = new SingularValueDecomposition(A);
         phone_latent_factors = svd.getU();
 
-        A = MatrixUtils.createRealMatrix(DataProcessor.getProductFeatureMatrix(laptops));
+        A = MatrixUtils.createRealMatrix(DataProcessor.getProductFeatureMatrix(tablets));
         svd = new SingularValueDecomposition(A);
         tablet_latent_factors = svd.getU();
     }
 
-    public RealMatrix getUForCategory(String category) {
-        if (category == "laptops") return laptop_latent_factors;
-        if (category == "phones") return phone_latent_factors;
-        if (category == "tablets") return tablet_latent_factors;
+    public RealMatrix getTabletLatentFactors() {
+        return tablet_latent_factors;
+    }
 
-        return null;
+    public RealMatrix getPhoneLatentFactors() {
+        return phone_latent_factors;
+    }
+
+    public RealMatrix getLaptopLatentFactors() {
+        return laptop_latent_factors;
     }
 }
