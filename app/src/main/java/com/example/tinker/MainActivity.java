@@ -10,6 +10,8 @@ import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.animation.AccelerateInterpolator;
+import android.view.animation.DecelerateInterpolator;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -34,7 +36,7 @@ public class MainActivity extends AppCompatActivity {
     private LinearLayout homeLayout;
     private Button buttonLaptops, buttonPhones, buttonTablets;
     private ImageButton buttonBack;
-    private TextView productName;
+    private TextView productName, productPrice;
     private ImageView productImage;
     private CardView cardView;
     private GestureDetector gestureDetector;
@@ -50,7 +52,6 @@ public class MainActivity extends AppCompatActivity {
     @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -62,6 +63,7 @@ public class MainActivity extends AppCompatActivity {
         buttonBack = findViewById(R.id.buttonBack);
         productName = findViewById(R.id.productName);
         productImage = findViewById(R.id.productImage);
+        productPrice = findViewById(R.id.productPrice);
 
         laptopsList = new ArrayList<>();
         phonesList = new ArrayList<>();
@@ -78,18 +80,23 @@ public class MainActivity extends AppCompatActivity {
         });
 
         buttonLaptops.setOnClickListener(v -> {
+            animateButtonTransition(buttonLaptops);
             homeLayout.setVisibility(View.GONE);
             cardView.setVisibility(View.VISIBLE);
             category = "laptops";
             loadProduct(laptops_engine.getRecommendedProduct());
         });
+
         buttonPhones.setOnClickListener(v -> {
+            animateButtonTransition(buttonPhones);
             homeLayout.setVisibility(View.GONE);
             cardView.setVisibility(View.VISIBLE);
             category = "phones";
             loadProduct(phones_engine.getRecommendedProduct());
         });
+
         buttonTablets.setOnClickListener(v -> {
+            animateButtonTransition(buttonTablets);
             homeLayout.setVisibility(View.GONE);
             cardView.setVisibility(View.VISIBLE);
             category = "tablets";
@@ -166,26 +173,19 @@ public class MainActivity extends AppCompatActivity {
     @SuppressLint({"DefaultLocale", "SetTextI18n"})
     private void loadProduct(Product product) {
         this.product = product;
-        String product_name_raw = product.getName().strip();
+        productPrice.setText("$" + String.valueOf(product.getPrice()));
         if (product.getName().length() < 75) {
-            productName.setText(product_name_raw);
+            productName.setText(product.getName().strip());
         }
         else {
-            productName.setText(product_name_raw.substring(0, Math.min(product_name_raw.length(), 75)));
+            productName.setText(product.getName().strip().substring(0, Math.min(product.getName().strip().length(), 75)) + " ...");
         }
-
 
         // Load product image
         Glide.with(this)
                 .load(product.getImageUrl())
                 .into(productImage);
-
-        // Make product name a clickable link
-//        productName.setOnClickListener(v -> {
-//            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(product.getProductUrl()));
-//            startActivity(browserIntent);
-//        });
-   }
+    }
 
     private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
         private static final int SWIPE_THRESHOLD = 100;
@@ -210,6 +210,7 @@ public class MainActivity extends AppCompatActivity {
             return false;
         }
     }
+
     private void animateSwipe(float translationX, Runnable onAnimationEnd) {
         cardView.animate()
                 .translationX(translationX)
@@ -221,10 +222,10 @@ public class MainActivity extends AppCompatActivity {
                     cardView.setRotation(0);
                     cardView.setAlpha(1f);
                     onAnimationEnd.run();
-
                 })
                 .start();
     }
+
     private void onSwipeRight() {
         animateSwipe(1000f, () -> {
             if (category.equals("laptops")) {
@@ -257,11 +258,29 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-
     private void enableButtons(boolean enabled) {
         buttonLaptops.setEnabled(enabled);
         buttonPhones.setEnabled(enabled);
         buttonTablets.setEnabled(enabled);
     }
 
+    // Animate the button when clicked
+    private void animateButtonTransition(Button button) {
+        button.animate()
+                .alpha(0f)
+                .scaleX(0.9f)
+                .scaleY(0.9f)
+                .setDuration(300)
+                .setInterpolator(new AccelerateInterpolator())
+                .withEndAction(() -> {
+                    button.animate()
+                            .alpha(1f)
+                            .scaleX(1f)
+                            .scaleY(1f)
+                            .setDuration(300)
+                            .setInterpolator(new DecelerateInterpolator())
+                            .start();
+                })
+                .start();
+    }
 }

@@ -14,8 +14,8 @@ public class RecommendationEngine {
     private int num_likes = 0;
     private double alpha = 0.7; // SVD weight
     private double beta = 0.3;  // Dislike penalty
-    private final double[] featureWeights = {0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5};
-    private final double[] featurePreferences = new double[7];
+    private final double[] featureWeights = {0.5, 0.5, 0.5, 0.5, 0.5, 0.5};
+    private final double[] featurePreferences = new double[6];
     private final double learningRate = 0.1;
 
 
@@ -33,13 +33,13 @@ public class RecommendationEngine {
             return;
         }
 
-        double[] sums = new double[7];
+        double[] sums = new double[6];
         for (Product p : candidateProducts) {
             double[] features = p.getAttributes();
-            for (int i = 0; i < 7; i++) sums[i] += features[i];
+            for (int i = 0; i < 6; i++) sums[i] += features[i];
         }
 
-        for (int i = 0; i < 7; i++) featurePreferences[i] = sums[i] / candidateProducts.size();
+        for (int i = 0; i < 6; i++) featurePreferences[i] = sums[i] / candidateProducts.size();
     }
 
     public void handleSwipe(Product product, boolean isRightSwipe) {
@@ -57,7 +57,7 @@ public class RecommendationEngine {
 
     private void updateFeatureWeights(Product product, boolean isRightSwipe) {
         double[] productFeatures = product.getAttributes();
-        for (int i = 0; i < 7; i++) {
+        for (int i = 0; i < 6; i++) {
             double featureDiff = Math.abs(productFeatures[i] - featurePreferences[i]);
             double similarity = 1 - featureDiff;
             double adjustment = learningRate * (isRightSwipe ? similarity : -similarity);
@@ -90,7 +90,9 @@ public class RecommendationEngine {
         double svdScore = userVector.dotProduct(productVector);
 
         double featureScore = 0;
-        for (int i = 0; i < 7; i++) featureScore += featureWeights[i] * (1 - Math.abs(features[i] - featurePreferences[i]));
+        for (int i = 0; i < 6; i++)
+            featureScore += featureWeights[i] * (1 - Math.abs(features[i] - featurePreferences[i]));
+
         return alpha * svdScore + (1 - alpha) * featureScore;
     }
 
