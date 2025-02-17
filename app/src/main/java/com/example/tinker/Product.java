@@ -1,82 +1,37 @@
 package com.example.tinker;
 
+import java.util.ArrayList;
+import com.google.firebase.firestore.DocumentReference;
+
 public class Product {
-    private String id, name, category, brand, imageUrl, productUrl;
-    private double price;
-    private int releaseYear;
+    private String name, image_url, product_url;
+    private final double[] attributes;   // 7-dimensional Vector
 
-    public Product(String id, String name, String category, String brand,double price, int releaseYear, String imageUrl, String productUrl) {
-        this.id = id;
-        this.name = name;
-        this.category = category;
-        this.brand = brand;
-        this.imageUrl = imageUrl;
-        this.productUrl = productUrl;
-        this.releaseYear = releaseYear;
-        this.price = price;
-    }
+    public String getName() { return name; }
 
-    public String getId() {
-        return id;
-    }
+    public String getImageUrl() { return image_url; }
 
-    public void setId(String id) {
-        this.id = id;
-    }
+    public String getProductUrl() { return product_url; }
 
-    public String getName() {
-        return name;
-    }
+    public double[] getAttributes() { return attributes; }
 
-    public void setName(String name) {
-        this.name = name;
-    }
+    public Product(DocumentReference documentReference) {
+        attributes = new double[7];
+        documentReference
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    this.name = documentSnapshot.getString("name");
+                    this.product_url = documentSnapshot.getString("product_url");
+                    this.image_url = documentSnapshot.getString("image_url");
 
-    public String getCategory() {
-        return category;
-    }
-
-    public void setCategory(String category) {
-        this.category = category;
-    }
-
-    public String getBrand() {
-        return brand;
-    }
-
-    public void setBrand(String brand) {
-        this.brand = brand;
-    }
-
-    public String getImageUrl() {
-        return imageUrl;
-    }
-
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
-    }
-
-    public String getProductUrl() {
-        return productUrl;
-    }
-
-    public void setProductUrl(String productUrl) {
-        this.productUrl = productUrl;
-    }
-
-    public double getPrice() {
-        return price;
-    }
-
-    public void setPrice(double price) {
-        this.price = price;
-    }
-
-    public int getReleaseYear() {
-        return releaseYear;
-    }
-
-    public void setReleaseYear(int releaseYear) {
-        this.releaseYear = releaseYear;
+                    // Populate Attributes Vector
+                    attributes[0] = documentSnapshot.getDouble("brand");
+                    attributes[1] = documentSnapshot.getDouble("price");
+                    attributes[2] = documentSnapshot.getDouble("rating");
+                    attributes[3] = documentSnapshot.getDouble("ram");
+                    attributes[4] = documentSnapshot.getDouble("storage");
+                    attributes[5] = documentSnapshot.getDouble("size");
+                    attributes[6] = documentSnapshot.getDouble("weight");
+                });
     }
 }

@@ -1,27 +1,35 @@
 package com.example.tinker;
 
-import org.apache.commons.math3.linear.*;
+import com.google.firebase.firestore.FirebaseFirestore;
 
+import org.apache.commons.math3.linear.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class SVD {
-    private Map<String, RealMatrix> uMatrices = new HashMap<>(); // Key: category
+    private RealMatrix laptop_latent_factors;
+    private RealMatrix phone_latent_factors;
+    private RealMatrix tablet_latent_factors;
+    public void precomputeSVD(List<Product> laptops, List<Product> phones, List<Product> tablets) {
+        RealMatrix A = MatrixUtils.createRealMatrix(DataProcessor.getProductFeatureMatrix(laptops));
+        SingularValueDecomposition svd = new SingularValueDecomposition(A);
+        laptop_latent_factors = svd.getU();
 
-    public void precomputeSVD() {
-        String[] categories = {"mobile", "laptop", "headphone"};
-        for (String category : categories) {
-            List<Product> products = MockData.getMockProducts(category);
-            double[][] featureMatrix = DataProcessor.getProductFeatureMatrix(products);
-            RealMatrix A = MatrixUtils.createRealMatrix(featureMatrix);
-            SingularValueDecomposition svd = new SingularValueDecomposition(A);
-            RealMatrix U = svd.getU(); // Left singular vectors
-            uMatrices.put(category, U);
-        }
+        A = MatrixUtils.createRealMatrix(DataProcessor.getProductFeatureMatrix(phones));
+        svd = new SingularValueDecomposition(A);
+        phone_latent_factors = svd.getU();
+
+        A = MatrixUtils.createRealMatrix(DataProcessor.getProductFeatureMatrix(laptops));
+        svd = new SingularValueDecomposition(A);
+        tablet_latent_factors = svd.getU();
     }
 
     public RealMatrix getUForCategory(String category) {
-        return uMatrices.get(category);
+        if (category == "laptops") return laptop_latent_factors;
+        if (category == "phones") return phone_latent_factors;
+        if (category == "tablets") return tablet_latent_factors;
+
+        return null;
     }
 }
