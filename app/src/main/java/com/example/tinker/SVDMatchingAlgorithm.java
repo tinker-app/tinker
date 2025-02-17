@@ -1,56 +1,50 @@
 package com.example.tinker;
 
-import org.apache.commons.math3.linear.ArrayRealVector;
-import org.apache.commons.math3.linear.RealMatrix;
-import org.apache.commons.math3.linear.RealVector;
 import android.util.Log;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.apache.commons.math3.linear.ArrayRealVector;
+import org.apache.commons.math3.linear.MatrixUtils;
+import org.apache.commons.math3.linear.RealMatrix;
+import org.apache.commons.math3.linear.RealVector;
+import org.apache.commons.math3.linear.SingularValueDecomposition;
 
-public class RecommendationEngine {
+public class SVDMatchingAlgorithm implements MatchingAlgorithm {
     private final RealMatrix U; // SVD latent factors
     private RealVector userVector;
-    private List<Product> candidateProducts;
+    private List<ProductSerializable> candidateProducts;
     private int num_likes = 0;
-    private double alpha = 0.4; // SVD weight
-    private double beta = 0.3;  // Dislike penalty
+    private final double alpha = 0.4; // SVD weight
+    private final double beta = 0.3;  // Dislike penalty
     private final double[] featureWeights = {0.5, 0.5, 0.5, 0.5, 0.5, 0.5};
     private final double[] featurePreferences = new double[6];
     private final double learningRate = 0.1;
     private final Map<String, Integer> productNameToRowIndex = new HashMap<>();
-    private List<Product> cart = new ArrayList<>();
+    private final List<ProductSerializable> cart = new ArrayList<>();
     private final double lambda = 0.5; // MMR relevance-diversity tradeoff
 
-    public RecommendationEngine(RealMatrix U, List<Product> candidateProducts) {
-        this.U = U;
+    public SVDMatchingAlgorithm(List<ProductSerializable> candidateProducts) {
+        RealMatrix m = MatrixUtils.createRealMatrix(getProductFeatureMatrix(candidateProducts));
+        SingularValueDecomposition svd = new SingularValueDecomposition(m);
+        this.U = svd.getU();
+
         this.candidateProducts = candidateProducts;
         this.userVector = new ArrayRealVector(U.getColumnDimension());
 
         for (int i = 0; i < candidateProducts.size(); i++) {
             productNameToRowIndex.put(candidateProducts.get(i).getName(), i);
-            Log.d("Product Mapping", "Name: " + candidateProducts.get(i).getName() +
-                    ", Index: " + productNameToRowIndex.get(candidateProducts.get(i).getName()));        }
-
-
-        initializeFeaturePreferences();
+        } initializeFeaturePreferences();
     }
 
-    private void initializeFeaturePreferences() {
-        double[] defaults = {0.7, 0.5, 0.6, 0.5, 0.7, 0.6};
-        System.arraycopy(defaults, 0, featurePreferences, 0, defaults.length);
-    }
-
-    public void handleSwipe(Product product, boolean isRightSwipe) {
-        Log.d("DEBUG", "handleSwipe() called for product: " + product.getName() + ", Right Swipe: " + isRightSwipe);
-
+    @Override
+    public void handleSwipe(ProductSerializable product, boolean isRightSwipe) {
         Integer productIndex = productNameToRowIndex.get(product.getName());
-        if (productIndex == null){  Log.e("ERROR", "Product index not found for: " + product.getName());
-            return;}
-
+        if (productIndex == null){
+            return;
+        }
 
         // Update SVD vector
         RealVector productVector = U.getRowVector(productIndex);
@@ -59,24 +53,35 @@ public class RecommendationEngine {
             updateUserVectorForLike(productVector);
         } else {
             userVector = userVector.subtract(productVector.mapMultiply(beta));
-
-
         }
-
         updateFeatureWeights(product, isRightSwipe);
-        Log.d("DEBUG", "Before calling updateRecommendations()");
         updateRecommendations();
-        Log.d("DEBUG", "After calling updateRecommendations()");
     }
 
-    private void updateFeatureWeights(Product product, boolean isRightSwipe) {
+    @Override
+    public ProductSerializable getRecommendedProduct() {
+        return candidateProducts.get(0);
+    }
+
+    public static double[][] getProductFeatureMatrix(List<ProductSerializable> products) {
+        int numProducts = products.size();
+        double[][] matrix = new double[numProducts][6];
+        for (int i = 0; i < numProducts; i++) matrix[i] = products.get(i).getAttributes();
+        return matrix;
+    }
+
+    private void initializeFeaturePreferences() {
+        double[] defaults = {0.7, 0.5, 0.6, 0.5, 0.7, 0.6};
+        System.arraycopy(defaults, 0, featurePreferences, 0, defaults.length);
+    }
+
+    private void updateFeatureWeights(ProductSerializable product, boolean isRightSwipe) {
         double[] productFeatures = product.getAttributes();
         for (int i = 0; i < 6; i++) {
             double featureDiff = Math.abs(productFeatures[i] - featurePreferences[i]);
             double similarity = 1 - featureDiff;
             double adjustment = learningRate * (isRightSwipe ? similarity : -similarity);
             featureWeights[i] = Math.max(0.1, Math.min(0.9, featureWeights[i] + adjustment));
-
             if (isRightSwipe) featurePreferences[i] = (featurePreferences[i] + productFeatures[i]) / 2;
         }
     }
@@ -87,22 +92,20 @@ public class RecommendationEngine {
             userVector = userVector.mapMultiply(num_likes)
                     .add(productVector)
                     .mapDivide(num_likes + 1);
-        }
-        num_likes++;
+        } num_likes++;
     }
 
     private void updateRecommendations() {
-        Log.d("CANDIDATES", "Before update: " + candidateProducts.size());
-        List<Product> sortedByRelevance = candidateProducts.stream()
+        List<ProductSerializable> sortedByRelevance = candidateProducts.stream()
                 .sorted((a, b) -> Double.compare(calculateScore(b), calculateScore(a)))
                 .collect(Collectors.toList());
 
-        List<Product> mmrSelected = new ArrayList<>();
+        List<ProductSerializable> mmrSelected = new ArrayList<>();
         while (!sortedByRelevance.isEmpty() && mmrSelected.size() < candidateProducts.size()) {
-            Product bestCandidate = null;
+            ProductSerializable bestCandidate = null;
             double bestMMRScore = Double.NEGATIVE_INFINITY;
 
-            for (Product candidate : sortedByRelevance) {
+            for (ProductSerializable candidate : sortedByRelevance) {
                 double relevance = calculateScore(candidate);
                 double diversity = mmrSelected.stream()
                         .mapToDouble(p -> cosineSimilarity(getProductVector(candidate), getProductVector(p)))
@@ -121,13 +124,9 @@ public class RecommendationEngine {
             }
         }
         candidateProducts = mmrSelected;
-        Log.d("MMR", "Top 5: " + mmrSelected.subList(0, Math.min(5, mmrSelected.size())).stream()
-                .map(Product::getName)
-                .collect(Collectors.toList()));
-        Log.d("CANDIDATES", "Before update: " + candidateProducts.size());
     }
 
-    private double calculateScore(Product product) {
+    private double calculateScore(ProductSerializable product) {
         Integer productIndex = productNameToRowIndex.get(product.getName());
         if (productIndex == null) return 0;
 
@@ -143,15 +142,12 @@ public class RecommendationEngine {
 
         double baseScore = alpha * svdScore + (1 - alpha) * featureScore;
 
-
         if (cart.contains(product)) {
             baseScore *= 0.7;
-        }
-
-        return baseScore;
+        } return baseScore;
     }
 
-    private RealVector getProductVector(Product product) {
+    private RealVector getProductVector(ProductSerializable product) {
         Integer productIndex = productNameToRowIndex.get(product.getName());
         return (productIndex != null) ? U.getRowVector(productIndex) : new ArrayRealVector(U.getColumnDimension());
     }
@@ -161,9 +157,5 @@ public class RecommendationEngine {
         double norm1 = v1.getNorm();
         double norm2 = v2.getNorm();
         return (norm1 == 0 || norm2 == 0) ? 0 : dotProduct / (norm1 * norm2);
-    }
-
-    public Product getRecommendedProduct() {
-        return candidateProducts.get(0);
     }
 }

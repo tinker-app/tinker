@@ -2,8 +2,6 @@ package com.example.tinker;
 
 import android.annotation.SuppressLint;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
@@ -15,20 +13,16 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
-
 import com.bumptech.glide.Glide;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
-
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -40,14 +34,14 @@ public class MainActivity extends AppCompatActivity {
     private ImageView productImage;
     private CardView cardView;
     private GestureDetector gestureDetector;
-    private List<Product> laptopsList;
-    private List<Product> phonesList;
-    private List<Product> tabletsList;
+    private List<ProductSerializable> laptops_list;
+    private List<ProductSerializable> phones_list;
+    private List<ProductSerializable> tablets_list;
     private String category;
-    private Product product;
-    private RecommendationEngine laptops_engine;
-    private RecommendationEngine phones_engine;
-    private RecommendationEngine tablets_engine;
+    private ProductSerializable product;
+    private MatchingAlgorithm laptops_engine;
+    private MatchingAlgorithm phones_engine;
+    private MatchingAlgorithm tablets_engine;
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
@@ -67,42 +61,29 @@ public class MainActivity extends AppCompatActivity {
         productPrice = findViewById(R.id.productPrice);
 
         // Initialize lists and Firestore
-        laptopsList = new ArrayList<>();
-        phonesList = new ArrayList<>();
-        tabletsList = new ArrayList<>();
+        laptops_list = new ArrayList<>();
+        phones_list = new ArrayList<>();
+        tablets_list = new ArrayList<>();
         db = FirebaseFirestore.getInstance();
 
-        // Disable buttons until data is loaded
-        setButtonsEnabled(false);
-
-        // Load data asynchronously
         loadData().addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
-                // Initialize recommendation engines after data is loaded
-                SVD svd = new SVD(laptopsList, phonesList, tabletsList);
-                laptops_engine = new RecommendationEngine(svd.getLaptopLatentFactors(), laptopsList);
-                phones_engine = new RecommendationEngine(svd.getPhoneLatentFactors(), phonesList);
-                tablets_engine = new RecommendationEngine(svd.getTabletLatentFactors(), tabletsList);
-
-                // Enable buttons after everything is initialized
-                setButtonsEnabled(true);
+                phones_engine = new SVDMatchingAlgorithm(phones_list);
+                laptops_engine = new SVDMatchingAlgorithm(laptops_list);
+                tablets_engine = new SVDMatchingAlgorithm(tablets_list);
                 Log.d("Success", "Data loaded and recommendation engines initialized successfully.");
             } else {
                 Log.e("Error", "Failed to load data", task.getException());
-                // Handle error - maybe show a message to user
             }
         });
-
-        // Setup gesture detector and button click listeners
         setupGestureDetector();
         setupButtonListeners();
     }
 
     private Task<Void> loadData() {
-        // Create tasks for loading each collection
-        Task<List<Product>> laptopsTask = loadProducts("laptops", laptopsList);
-        Task<List<Product>> phonesTask = loadProducts("phones", phonesList);
-        Task<List<Product>> tabletsTask = loadProducts("tablets", tabletsList);
+        Task<List<ProductSerializable>> laptopsTask = loadProducts("laptops", laptops_list);
+        Task<List<ProductSerializable>> phonesTask = loadProducts("phones", phones_list);
+        Task<List<ProductSerializable>> tabletsTask = loadProducts("tablets", tablets_list);
 
         // Combine all tasks
         return Tasks.whenAll(laptopsTask, phonesTask, tabletsTask)
@@ -115,13 +96,13 @@ public class MainActivity extends AppCompatActivity {
                 });
     }
 
-    private Task<List<Product>> loadProducts(String collectionName, List<Product> targetList) {
+    private Task<List<ProductSerializable>> loadProducts(String collectionName, List<ProductSerializable> targetList) {
         return db.collection(collectionName)
                 .get()
                 .continueWith(task -> {
                     if (task.isSuccessful()) {
                         for (QueryDocumentSnapshot document : task.getResult()) {
-                            Product product = new Product(document);
+                            ProductSerializable product = new ProductSerializable(document);
                             targetList.add(product);
                         }
                         Log.d("Firestore", collectionName + " loaded successfully");
@@ -130,12 +111,6 @@ public class MainActivity extends AppCompatActivity {
                     }
                     return targetList;
                 });
-    }
-
-    private void setButtonsEnabled(boolean enabled) {
-        buttonLaptops.setEnabled(enabled);
-        buttonPhones.setEnabled(enabled);
-        buttonTablets.setEnabled(enabled);
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -179,10 +154,10 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    @SuppressLint("DefaultLocale")
-    private void loadProduct(Product product) {
+    @SuppressLint({"DefaultLocale", "SetTextI18n"})
+    private void loadProduct(ProductSerializable product) {
         this.product = product;
-        productPrice.setText("$" + String.valueOf(product.getPrice()));
+        productPrice.setText("$" + product.getPrice());
         if (product.getName().length() < 75) {
             productName.setText(product.getName().strip());
         }
@@ -192,7 +167,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Load product image
         Glide.with(this)
-                .load(product.getImageUrl())
+                .load(product.getImageURL())
                 .into(productImage);
 
         // Make product name a clickable link
@@ -243,15 +218,19 @@ public class MainActivity extends AppCompatActivity {
 
     private void onSwipeRight() {
         animateSwipe(1000f, () -> {
-            if (category.equals("laptops")) {
-                laptops_engine.handleSwipe(product, true);
-                loadProduct(laptops_engine.getRecommendedProduct());
-            } else if (category.equals("tablets")) {
-                tablets_engine.handleSwipe(product, true);
-                loadProduct(tablets_engine.getRecommendedProduct());
-            } else if (category.equals("phones")) {
-                phones_engine.handleSwipe(product, true);
-                loadProduct(phones_engine.getRecommendedProduct());
+            switch (category) {
+                case "laptops":
+                    laptops_engine.handleSwipe(product, true);
+                    loadProduct(laptops_engine.getRecommendedProduct());
+                    break;
+                case "tablets":
+                    tablets_engine.handleSwipe(product, true);
+                    loadProduct(tablets_engine.getRecommendedProduct());
+                    break;
+                case "phones":
+                    phones_engine.handleSwipe(product, true);
+                    loadProduct(phones_engine.getRecommendedProduct());
+                    break;
             }
             Log.d("Product Loaded", product.getName());
         });
@@ -259,27 +238,24 @@ public class MainActivity extends AppCompatActivity {
 
     private void onSwipeLeft() {
         animateSwipe(-1000f, () -> {
-            if (category.equals("laptops")) {
-                laptops_engine.handleSwipe(product, false);
-                loadProduct(laptops_engine.getRecommendedProduct());
-            } else if (category.equals("tablets")) {
-                tablets_engine.handleSwipe(product, false);
-                loadProduct(tablets_engine.getRecommendedProduct());
-            } else if (category.equals("phones")) {
-                phones_engine.handleSwipe(product, false);
-                loadProduct(phones_engine.getRecommendedProduct());
+            switch (category) {
+                case "laptops":
+                    laptops_engine.handleSwipe(product, false);
+                    loadProduct(laptops_engine.getRecommendedProduct());
+                    break;
+                case "tablets":
+                    tablets_engine.handleSwipe(product, false);
+                    loadProduct(tablets_engine.getRecommendedProduct());
+                    break;
+                case "phones":
+                    phones_engine.handleSwipe(product, false);
+                    loadProduct(phones_engine.getRecommendedProduct());
+                    break;
             }
             Log.d("Product Loaded", product.getName());
         });
     }
 
-    private void enableButtons(boolean enabled) {
-        buttonLaptops.setEnabled(enabled);
-        buttonPhones.setEnabled(enabled);
-        buttonTablets.setEnabled(enabled);
-    }
-
-    // Animate the button when clicked
     private void animateButtonTransition(Button button) {
         button.animate()
                 .alpha(0f)
@@ -287,15 +263,14 @@ public class MainActivity extends AppCompatActivity {
                 .scaleY(0.9f)
                 .setDuration(300)
                 .setInterpolator(new AccelerateInterpolator())
-                .withEndAction(() -> {
-                    button.animate()
-                            .alpha(1f)
-                            .scaleX(1f)
-                            .scaleY(1f)
-                            .setDuration(300)
-                            .setInterpolator(new DecelerateInterpolator())
-                            .start();
-                })
+                .withEndAction(() ->
+                        button.animate()
+                        .alpha(1f)
+                        .scaleX(1f)
+                        .scaleY(1f)
+                        .setDuration(300)
+                        .setInterpolator(new DecelerateInterpolator())
+                        .start())
                 .start();
     }
 }

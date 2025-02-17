@@ -1,24 +1,20 @@
 package com.example.tinker;
 
-import android.util.Log;
-
 import com.google.firebase.firestore.DocumentSnapshot;
+import java.io.Serializable;
 
-public class Product {
-    private String name, image_url, product_url;
-    private double price;
+public class ProductSerializable implements Serializable {
+    private final double price;
     private final double[] attributes;   // 7-dimensional Vector
+    private final String name, image_url, product_url;
 
     public String getName() { return name; }
-
-    public String getImageUrl() { return image_url; }
-
-    public String getProductUrl() { return product_url; }
+    public String getImageURL() { return image_url; }
+    public String getProductURL() { return product_url; }
     public double getPrice() { return price; }
-
     public double[] getAttributes() { return attributes; }
 
-    public Product(DocumentSnapshot documentSnapshot) {
+    public ProductSerializable(DocumentSnapshot documentSnapshot) {
         this.name = documentSnapshot.getString("name");
         this.product_url = documentSnapshot.getString("product_url");
         this.image_url = documentSnapshot.getString("image_url");

@@ -111,6 +111,7 @@ def load_data(collection, search_query, driver, db, pages):
 
 def add_weighted_attribute(product, key, value):
     key_lower = key.lower()
+    
     if "ram" in key_lower or "memory" in key_lower:
         ram_value = re.search(r'\d+', value)
         if ram_value:
@@ -148,5 +149,6 @@ def add_weighted_attribute(product, key, value):
         else:
             product["weight"] = None
     return
+
 if __name__ == "__main__":
     main()
