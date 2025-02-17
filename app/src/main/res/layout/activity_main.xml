@@ -138,7 +138,7 @@
     <androidx.cardview.widget.CardView
         android:id="@+id/cardView"
         android:layout_width="0dp"
-        android:layout_height="0dp"
+        android:layout_height="wrap_content"
         android:layout_margin="24dp"
         android:elevation="8dp"
         app:cardCornerRadius="24dp"
@@ -152,12 +152,15 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:paddingBottom="50dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                android:orientation="horizontal"
+                android:paddingTop="25dp"
+                android:paddingBottom="25dp">
 
                 <!-- Back Button -->
                 <ImageButton
@@ -202,6 +205,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="300dp"
                 android:contentDescription="Product Image"
+                android:paddingBottom="20dp"
                 android:scaleType="centerCrop"
                 android:background="@color/light_gray" />
 
@@ -221,7 +225,8 @@
                     android:textSize="24sp"
                     android:textStyle="bold"
                     android:textColor="@color/black"
-                    android:fontFamily="sans-serif-medium" />
+                    android:fontFamily="sans-serif-medium"
+                    android:paddingBottom="20dp"/>
 
                 <!-- Product Price -->
                 <TextView

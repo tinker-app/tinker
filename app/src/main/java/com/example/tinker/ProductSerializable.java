@@ -16,7 +16,7 @@ public class ProductSerializable implements Serializable {
 
     public ProductSerializable(DocumentSnapshot documentSnapshot) {
         this.name = documentSnapshot.getString("name");
-        this.product_url = documentSnapshot.getString("product_url");
+        this.product_url = documentSnapshot.getString("url");
         this.image_url = documentSnapshot.getString("image_url");
         this.price = documentSnapshot.getDouble("actual_price");
 

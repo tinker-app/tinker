@@ -1,6 +1,8 @@
 package com.example.tinker;
 
 import android.annotation.SuppressLint;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -13,6 +15,8 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
@@ -85,14 +89,14 @@ public class MainActivity extends AppCompatActivity {
                 phones_engine = new SGDMatchingAlgorithm(phones_list);
                 laptops_engine = new SGDMatchingAlgorithm(laptops_list);
                 tablets_engine = new SGDMatchingAlgorithm(tablets_list);
+                setupGestureDetector();
+                setupButtonListeners();
                 Log.d("Success", "Data loaded and recommendation engines initialized successfully.");
             } else {
                 Log.e("Error", "Failed to load data", task.getException());
             }
         });
 
-        setupGestureDetector();
-        setupButtonListeners();
     }
 
     private Task<Void> loadData() {
@@ -188,11 +192,13 @@ public class MainActivity extends AppCompatActivity {
                 .load(product.getImageURL())
                 .into(productImage);
 
-        // Make product name a clickable link
-//        productName.setOnClickListener(v -> {
-//            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(product.getProductUrl()));
-//            startActivity(browserIntent);
-//        });
+        productName.setOnClickListener(v -> {
+            Log.d("Link", product.getProductURL());
+            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(product.getProductURL()));
+            startActivity(browserIntent);
+            Toast.makeText(this, "Redirecting ...",
+                    Toast.LENGTH_LONG).show();
+        });
     }
 
     private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
