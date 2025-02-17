@@ -11,10 +11,12 @@ import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 
@@ -31,6 +33,7 @@ public class MainActivity extends AppCompatActivity {
     private FirebaseFirestore db;
     private LinearLayout homeLayout;
     private Button buttonLaptops, buttonPhones, buttonTablets;
+    private ImageButton buttonBack;
     private TextView productName;
     private ImageView productImage;
     private CardView cardView;
@@ -47,6 +50,7 @@ public class MainActivity extends AppCompatActivity {
     @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -55,6 +59,7 @@ public class MainActivity extends AppCompatActivity {
         buttonLaptops = findViewById(R.id.buttonLaptops);
         buttonTablets = findViewById(R.id.buttonTablets);
         buttonPhones = findViewById(R.id.buttonPhones);
+        buttonBack = findViewById(R.id.buttonBack);
         productName = findViewById(R.id.productName);
         productImage = findViewById(R.id.productImage);
 
@@ -89,6 +94,11 @@ public class MainActivity extends AppCompatActivity {
             cardView.setVisibility(View.VISIBLE);
             category = "tablets";
             loadProduct(tablets_engine.getRecommendedProduct());
+        });
+
+        buttonBack.setOnClickListener(v -> {
+            cardView.setVisibility(View.GONE); // Hide product screen
+            homeLayout.setVisibility(View.VISIBLE); // Show category selection
         });
     }
 
@@ -153,10 +163,17 @@ public class MainActivity extends AppCompatActivity {
         Log.d("Success", "Recommendation engines initialized successfully.");
     }
 
-    @SuppressLint("DefaultLocale")
+    @SuppressLint({"DefaultLocale", "SetTextI18n"})
     private void loadProduct(Product product) {
         this.product = product;
-        productName.setText(product.getName());
+        String product_name_raw = product.getName().strip();
+        if (product.getName().length() < 75) {
+            productName.setText(product_name_raw);
+        }
+        else {
+            productName.setText(product_name_raw.substring(0, Math.min(product_name_raw.length(), 75)));
+        }
+
 
         // Load product image
         Glide.with(this)
@@ -168,11 +185,16 @@ public class MainActivity extends AppCompatActivity {
 //            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(product.getProductUrl()));
 //            startActivity(browserIntent);
 //        });
-    }
+   }
 
     private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
         private static final int SWIPE_THRESHOLD = 100;
         private static final int SWIPE_VELOCITY_THRESHOLD = 100;
+
+        @Override
+        public boolean onDown(@NonNull MotionEvent e) {
+            return true;
+        }
 
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
@@ -188,32 +210,58 @@ public class MainActivity extends AppCompatActivity {
             return false;
         }
     }
+    private void animateSwipe(float translationX, Runnable onAnimationEnd) {
+        cardView.animate()
+                .translationX(translationX)
+                .rotation(translationX > 0 ? 15 : -15)
+                .alpha(0f)
+                .setDuration(300)
+                .withEndAction(() -> {
+                    cardView.setTranslationX(0);
+                    cardView.setRotation(0);
+                    cardView.setAlpha(1f);
+                    onAnimationEnd.run();
 
+                })
+                .start();
+    }
     private void onSwipeRight() {
-        if (category.equals("laptops")) {
-            laptops_engine.handleSwipe(product, true);
-            loadProduct(laptops_engine.getRecommendedProduct());
-        } else if (category.equals("tablets")) {
-            tablets_engine.handleSwipe(product, true);
-            loadProduct(tablets_engine.getRecommendedProduct());
-        } else if (category.equals("phones")) {
-            phones_engine.handleSwipe(product, true);
-            loadProduct(phones_engine.getRecommendedProduct());
-        }
-        Log.d("Product Loaded", product.getName());
+        animateSwipe(1000f, () -> {
+            if (category.equals("laptops")) {
+                laptops_engine.handleSwipe(product, true);
+                loadProduct(laptops_engine.getRecommendedProduct());
+            } else if (category.equals("tablets")) {
+                tablets_engine.handleSwipe(product, true);
+                loadProduct(tablets_engine.getRecommendedProduct());
+            } else if (category.equals("phones")) {
+                phones_engine.handleSwipe(product, true);
+                loadProduct(phones_engine.getRecommendedProduct());
+            }
+            Log.d("Product Loaded", product.getName());
+        });
     }
 
     private void onSwipeLeft() {
-        if (category.equals("laptops")) {
-            laptops_engine.handleSwipe(product, false);
-            loadProduct(laptops_engine.getRecommendedProduct());
-        } else if (category.equals("tablets")) {
-            tablets_engine.handleSwipe(product, false);
-            loadProduct(tablets_engine.getRecommendedProduct());
-        } else if (category.equals("phones")) {
-            phones_engine.handleSwipe(product, false);
-            loadProduct(phones_engine.getRecommendedProduct());
-        }
-        Log.d("Product Loaded", product.getName());
+        animateSwipe(-1000f, () -> {
+            if (category.equals("laptops")) {
+                laptops_engine.handleSwipe(product, false);
+                loadProduct(laptops_engine.getRecommendedProduct());
+            } else if (category.equals("tablets")) {
+                tablets_engine.handleSwipe(product, false);
+                loadProduct(tablets_engine.getRecommendedProduct());
+            } else if (category.equals("phones")) {
+                phones_engine.handleSwipe(product, false);
+                loadProduct(phones_engine.getRecommendedProduct());
+            }
+            Log.d("Product Loaded", product.getName());
+        });
     }
+
+
+    private void enableButtons(boolean enabled) {
+        buttonLaptops.setEnabled(enabled);
+        buttonPhones.setEnabled(enabled);
+        buttonTablets.setEnabled(enabled);
+    }
+
 }
