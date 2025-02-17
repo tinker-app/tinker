@@ -94,7 +94,7 @@ public class RecommendationEngine {
         return alpha * svdScore + (1 - alpha) * featureScore;
     }
 
-    public List<Product> getRecommendedProducts() {
-        return candidateProducts;
+    public Product getRecommendedProduct() {
+        return candidateProducts.get(0);
     }
 }

@@ -4,6 +4,8 @@ import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
@@ -13,8 +15,9 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import androidx.cardview.widget.CardView;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.cardview.widget.CardView;
+
 import com.bumptech.glide.Glide;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
@@ -32,9 +35,9 @@ public class MainActivity extends AppCompatActivity {
     private ImageView productImage;
     private CardView cardView;
     private GestureDetector gestureDetector;
-    private List<Product> laptopsList = new ArrayList<>();
-    private List<Product> phonesList = new ArrayList<>();
-    private List<Product> tabletsList = new ArrayList<>();
+    private List<Product> laptopsList;
+    private List<Product> phonesList;
+    private List<Product> tabletsList;
     private String category;
     private Product product;
     RecommendationEngine laptops_engine;
@@ -52,44 +55,15 @@ public class MainActivity extends AppCompatActivity {
         buttonLaptops = findViewById(R.id.buttonLaptops);
         buttonTablets = findViewById(R.id.buttonTablets);
         buttonPhones = findViewById(R.id.buttonPhones);
-
         productName = findViewById(R.id.productName);
         productImage = findViewById(R.id.productImage);
 
-
+        laptopsList = new ArrayList<>();
+        phonesList = new ArrayList<>();
+        tabletsList = new ArrayList<>();
         db = FirebaseFirestore.getInstance();
 
-        db.collection("laptops")
-                .get()
-                .addOnCompleteListener(response -> {
-                    for (QueryDocumentSnapshot documentReference: response.getResult()) {
-                        laptopsList.add(new Product(documentReference.getReference()));
-                        Log.d("Laptop", documentReference.getString("name"));
-                    }
-                }).addOnFailureListener( response -> Log.d("Firestore", "Could not load laptops"));
-
-        db.collection("phones")
-                .get()
-                .addOnCompleteListener(response -> {
-                    for (QueryDocumentSnapshot documentReference: response.getResult()) {
-                        phonesList.add(new Product(documentReference.getReference()));
-                        Log.d("Phone", documentReference.getString("name"));
-                    }
-                }).addOnFailureListener( response -> Log.d("Firestore", "Could not load phones"));
-
-        db.collection("tablets")
-                .get()
-                .addOnCompleteListener(response -> {
-                    for (QueryDocumentSnapshot documentReference: response.getResult()) {
-                        tabletsList.add(new Product(documentReference.getReference()));
-                        Log.d("Tablet", documentReference.getString("name"));
-                    }
-                }).addOnFailureListener( response -> Log.d("Firestore", "Could not load tablets"));
-
-        SVD svd = new SVD(laptopsList, phonesList, tabletsList);
-        laptops_engine = new RecommendationEngine(svd.getLaptopLatentFactors(), laptopsList);
-        phones_engine = new RecommendationEngine(svd.getPhoneLatentFactors(), phonesList);
-        tablets_engine = new RecommendationEngine(svd.getTabletLatentFactors(), tabletsList);
+        loadProductsFromFirestore();
 
         gestureDetector = new GestureDetector(this, new SwipeGestureListener());
 
@@ -102,36 +76,98 @@ public class MainActivity extends AppCompatActivity {
             homeLayout.setVisibility(View.GONE);
             cardView.setVisibility(View.VISIBLE);
             category = "laptops";
-            loadProduct(laptops_engine.getRecommendedProducts().get(0));
+            loadProduct(laptops_engine.getRecommendedProduct());
         });
         buttonPhones.setOnClickListener(v -> {
             homeLayout.setVisibility(View.GONE);
             cardView.setVisibility(View.VISIBLE);
             category = "phones";
-            loadProduct(phones_engine.getRecommendedProducts().get(0));
+            loadProduct(phones_engine.getRecommendedProduct());
         });
         buttonTablets.setOnClickListener(v -> {
             homeLayout.setVisibility(View.GONE);
             cardView.setVisibility(View.VISIBLE);
             category = "tablets";
-            loadProduct(tablets_engine.getRecommendedProducts().get(0));
+            loadProduct(tablets_engine.getRecommendedProduct());
         });
     }
+
+    private void loadProductsFromFirestore() {
+        AtomicInteger completedTasks = new AtomicInteger(0);
+
+        db.collection("laptops")
+                .get()
+                .addOnCompleteListener(response -> {
+                    if (response.isSuccessful()) {
+                        for (QueryDocumentSnapshot document : response.getResult()) {
+                            laptopsList.add(new Product(document.getReference()));
+                        }
+                        Log.d("Firestore", "Laptops loaded successfully");
+                    } else {
+                        Log.d("Firestore", "Failed to load laptops");
+                    }
+                    checkAllDataLoaded(completedTasks);
+                });
+
+        db.collection("phones")
+                .get()
+                .addOnCompleteListener(response -> {
+                    if (response.isSuccessful()) {
+                        for (QueryDocumentSnapshot document : response.getResult()) {
+                            phonesList.add(new Product(document.getReference()));
+                        }
+                        Log.d("Firestore", "Phones loaded successfully");
+                    } else {
+                        Log.d("Firestore", "Failed to load phones");
+                    }
+                    checkAllDataLoaded(completedTasks);
+                });
+
+        db.collection("tablets")
+                .get()
+                .addOnCompleteListener(response -> {
+                    if (response.isSuccessful()) {
+                        for (QueryDocumentSnapshot document : response.getResult()) {
+                            tabletsList.add(new Product(document.getReference()));
+                        }
+                        Log.d("Firestore", "Tablets loaded successfully");
+                    } else {
+                        Log.d("Firestore", "Failed to load tablets");
+                    }
+                    checkAllDataLoaded(completedTasks);
+                });
+    }
+
+    private void checkAllDataLoaded(AtomicInteger completedTasks) {
+        if (completedTasks.incrementAndGet() == 3) {
+            Log.d("Firestore", "All products loaded. Running SVD...");
+            new Handler(Looper.getMainLooper()).post(this::initializeRecommendationEngines);
+        }
+    }
+
+    private void initializeRecommendationEngines() {
+        SVD svd = new SVD(laptopsList, phonesList, tabletsList);
+        laptops_engine = new RecommendationEngine(svd.getLaptopLatentFactors(), laptopsList);
+        phones_engine = new RecommendationEngine(svd.getPhoneLatentFactors(), phonesList);
+        tablets_engine = new RecommendationEngine(svd.getTabletLatentFactors(), tabletsList);
+        Log.d("Success", "Recommendation engines initialized successfully.");
+    }
+
     @SuppressLint("DefaultLocale")
     private void loadProduct(Product product) {
-            this.product = product;
-            productName.setText(product.getName());
+        this.product = product;
+        productName.setText(product.getName());
 
-            // Load product image
-            Glide.with(this)
-                    .load(product.getImageUrl())
-                    .into(productImage);
+        // Load product image
+        Glide.with(this)
+                .load(product.getImageUrl())
+                .into(productImage);
 
-            // Make product name a clickable link
-            productName.setOnClickListener(v -> {
-                Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(product.getProductUrl()));
-                startActivity(browserIntent);
-            });
+        // Make product name a clickable link
+//        productName.setOnClickListener(v -> {
+//            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(product.getProductUrl()));
+//            startActivity(browserIntent);
+//        });
     }
 
     private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
@@ -154,27 +190,30 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void onSwipeRight() {
-        if (category == "laptops") {
+        if (category.equals("laptops")) {
             laptops_engine.handleSwipe(product, true);
-        }
-        if (category == "tablets") {
+            loadProduct(laptops_engine.getRecommendedProduct());
+        } else if (category.equals("tablets")) {
             tablets_engine.handleSwipe(product, true);
-        }
-        if (category == "phones") {
+            loadProduct(tablets_engine.getRecommendedProduct());
+        } else if (category.equals("phones")) {
             phones_engine.handleSwipe(product, true);
+            loadProduct(phones_engine.getRecommendedProduct());
         }
-
+        Log.d("Product Loaded", product.getName());
     }
 
     private void onSwipeLeft() {
-        if (category == "laptops") {
+        if (category.equals("laptops")) {
             laptops_engine.handleSwipe(product, false);
-        }
-        if (category == "tablets") {
+            loadProduct(laptops_engine.getRecommendedProduct());
+        } else if (category.equals("tablets")) {
             tablets_engine.handleSwipe(product, false);
-        }
-        if (category == "phones") {
+            loadProduct(tablets_engine.getRecommendedProduct());
+        } else if (category.equals("phones")) {
             phones_engine.handleSwipe(product, false);
+            loadProduct(phones_engine.getRecommendedProduct());
         }
+        Log.d("Product Loaded", product.getName());
     }
 }
