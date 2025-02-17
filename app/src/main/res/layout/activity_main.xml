@@ -17,13 +17,11 @@
         android:layout_height="0dp"
         android:gravity="center"
         android:orientation="vertical"
-        android:padding="32dp"
+        android:padding="8dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.0">
+        app:layout_constraintTop_toTopOf="parent">
 
         <!-- Logo Image -->
         <ImageView
@@ -31,23 +29,34 @@
             android:layout_width="239dp"
             android:layout_height="243dp"
             android:layout_gravity="center"
-            android:layout_marginBottom="5dp"
+            android:layout_marginBottom="8dp"
             android:contentDescription="App Logo"
             android:src="@drawable/app_logo"/>
 
         <!-- Welcome Text -->
+
         <TextView
             android:id="@+id/textWelcome"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_margin="20dp"
             android:shadowColor="@color/text_shadow"
-            android:layout_margin="45dp"
             android:shadowDx="5"
             android:shadowDy="5"
             android:shadowRadius="10"
-            android:text="Choose a Category"
+            android:text="Welcome to Tinker!"
             android:textColor="@color/light_font"
             android:textSize="28sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/description"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="45dp"
+            android:text="This app allows you to seamlessly scroll through thousands of Amazon Electronics products and tailors your recommendations to the choices you make. To get started, pick a category below:"
+            android:textColor="@color/light_gray"
+            android:textSize="14sp"
             android:textStyle="bold" />
 
         <!-- Laptops Button -->
@@ -56,14 +65,14 @@
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
+            android:layout_marginBottom="8dp"
             android:backgroundTint="@android:color/white"
             android:drawableLeft="@drawable/ic_laptop"
             android:drawablePadding="12dp"
             android:elevation="8dp"
             android:fontFamily="sans-serif-medium"
             android:paddingHorizontal="32dp"
-            android:paddingVertical="12dp"
+            android:paddingVertical="8dp"
             android:shadowDx="5"
             android:shadowDy="5"
             android:shadowRadius="10"
@@ -81,14 +90,14 @@
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
+            android:layout_marginBottom="8dp"
             android:backgroundTint="@android:color/white"
             android:drawableLeft="@drawable/ic_phone"
             android:drawablePadding="12dp"
             android:elevation="8dp"
             android:fontFamily="sans-serif-medium"
             android:paddingHorizontal="32dp"
-            android:paddingVertical="12dp"
+            android:paddingVertical="8dp"
             android:shadowDx="5"
             android:shadowDy="5"
             android:shadowRadius="10"
@@ -112,7 +121,7 @@
             android:elevation="8dp"
             android:fontFamily="sans-serif-medium"
             android:paddingHorizontal="32dp"
-            android:paddingVertical="12dp"
+            android:paddingVertical="8dp"
             android:shadowDx="5"
             android:shadowDy="5"
             android:shadowRadius="10"
@@ -145,17 +154,47 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- Back Button -->
-            <ImageButton
-                android:id="@+id/buttonBack"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:padding="8dp"
-                android:layout_margin="16dp"
-                android:src="@drawable/ic_back"
-                android:contentDescription="Back"
-                app:tint="@color/black" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <!-- Back Button -->
+                <ImageButton
+                    android:id="@+id/buttonBack"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:layout_margin="16dp"
+                    android:src="@drawable/ic_back"
+                    android:layout_weight="1"
+                    android:contentDescription="Back"
+                    app:tint="@color/black" />
+                <!-- Cart Button -->
+                <ImageButton
+                    android:id="@+id/cartButton"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_alignParentEnd="true"
+                    android:layout_alignParentTop="true"
+                    android:layout_margin="16dp"
+                    android:src="@drawable/ic_cart"
+                    android:layout_weight="1"
+                    android:contentDescription="Cart"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    app:tint="@color/black"/>
+
+            </LinearLayout>
+
+            <!-- Cart View: RecyclerView to display products in the cart -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/cartRecyclerView"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:layout_marginTop="8dp"
+                android:visibility="gone"
+                android:padding="16dp"/>
 
             <!-- Product Image -->
             <ImageView
@@ -195,6 +234,7 @@
                     android:fontFamily="sans-serif-medium"
                     android:text="Price"
                     android:textColor="@color/dark_gray"/>
+
             </LinearLayout>
         </LinearLayout>
     </androidx.cardview.widget.CardView>
