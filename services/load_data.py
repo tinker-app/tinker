@@ -1,12 +1,12 @@
+import re
 import firebase_admin
-from firebase_admin import credentials, firestore
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from firebase_admin import credentials, firestore
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-import re
 
 PATH_TO_CHROMEDRIVER = "chromedriver.exe"
 PATH_TO_FIREBASE_CREDENTIALS = "tinker-db-firebase-adminsdk-fbsvc-0afa7f0028.json"
@@ -19,16 +19,16 @@ BRAND_RATING = {
     "Google": 0.9,
     "Microsoft": 0.8,
     "Nothing": 0.8,
-    "LG": 0.7,
+    "LG": 0.8,
     "Asus": 0.7,
     "OnePlus": 0.7,
     "MSI": 0.7,
     "Oppo": 0.6,
     "Vivo": 0.6,
     "Acer": 0.6,
-    "Dell": 0.6,
-    "HP": 0.6,
-    "Realme": 0.6,
+    "Dell": 0.8,
+    "HP": 0.8,
+    "Realme": 0.7,
 }
 
 def main():
@@ -45,19 +45,19 @@ def main():
     service = Service(PATH_TO_CHROMEDRIVER)
     driver = webdriver.Chrome(service=service, options=chrome_options)
 
-    load_data("phones", driver, db)
-    load_data("laptops", driver, db)
-    load_data("tablets", driver, db)
+    load_data("phones", "smartphones", driver, db, 3)
+    load_data("laptops", "laptops", driver, db, 3)
+    load_data("tablets", "tablets", driver, db, 3)
 
     driver.quit()
 
-def load_data(search_query, driver, db):
-    doc_ref = db.collection(search_query)
+def load_data(collection, search_query, driver, db, pages):
+    doc_ref = db.collection(collection)
     url = f"https://www.amazon.ca/s?k={search_query}"
 
     products = {}
 
-    for i in range(1, 5):
+    for i in range(1, pages + 1):
         try:
             driver.get(url + f"&page={i}")
             query_results = driver.find_elements(By.CSS_SELECTOR, "div[data-component-type='s-search-result']")
@@ -79,6 +79,7 @@ def load_data(search_query, driver, db):
             price = price_element.get_attribute("textContent").strip()
             price = price.replace(',', '').replace('.', '')
             products[product]["price"] = int(price)
+            products[product]["actual_price"] = int(price)
 
             brand_score = 0.5
             for brand, score in BRAND_RATING.items():
@@ -117,13 +118,14 @@ def add_weighted_attribute(product, key, value):
         else:
             product["ram"] = None
     
-    elif "screen size" in key_lower or "screen length" in key_lower or "dimensions" in key_lower or "hard drive" in key_lower:
+    elif "screen size" in key_lower or "screen length" in key_lower or "dimensions" in key_lower:
         screen_size_value = re.search(r'\d+', value)
         if screen_size_value:
             product["size"] = int(screen_size_value.group())
         else:
             product["size"] = None
-    elif "storage" in key_lower or "ssd" in key_lower or "hdd" in key_lower:
+            
+    elif "storage" in key_lower or "ssd" in key_lower or "hdd" in key_lower or "hard drive" in key_lower:
         storage_value = re.search(r'\d+', value)
         if storage_value:
             storage_size = int(storage_value.group())
