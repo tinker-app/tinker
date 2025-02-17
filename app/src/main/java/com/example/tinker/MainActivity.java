@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
@@ -11,31 +12,34 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
-import androidx.annotation.NonNull;
+
 import androidx.cardview.widget.CardView;
 import androidx.appcompat.app.AppCompatActivity;
 import com.bumptech.glide.Glide;
-import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class MainActivity extends AppCompatActivity {
 
     private FirebaseFirestore db;
-    private CollectionReference productsRef;
     private LinearLayout homeLayout;
     private Button buttonLaptops, buttonPhones, buttonTablets;
-    private TextView productName, productPrice;
+    private TextView productName;
     private ImageView productImage;
     private CardView cardView;
     private GestureDetector gestureDetector;
-    private List<Product> productList = new ArrayList<>();
-    private int currentProductIndex = 0;
-    private String currentCategory = "";
+    private List<Product> laptopsList = new ArrayList<>();
+    private List<Product> phonesList = new ArrayList<>();
+    private List<Product> tabletsList = new ArrayList<>();
+    private String category;
+    private Product product;
+    RecommendationEngine laptops_engine;
+    RecommendationEngine phones_engine;
+    RecommendationEngine tablets_engine;
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
@@ -43,8 +47,50 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        homeLayout = findViewById(R.id.homeLayout);
+        cardView = findViewById(R.id.cardView);
+        buttonLaptops = findViewById(R.id.buttonLaptops);
+        buttonTablets = findViewById(R.id.buttonTablets);
+        buttonPhones = findViewById(R.id.buttonPhones);
+
+        productName = findViewById(R.id.productName);
+        productImage = findViewById(R.id.productImage);
+
 
         db = FirebaseFirestore.getInstance();
+
+        db.collection("laptops")
+                .get()
+                .addOnCompleteListener(response -> {
+                    for (QueryDocumentSnapshot documentReference: response.getResult()) {
+                        laptopsList.add(new Product(documentReference.getReference()));
+                        Log.d("Laptop", documentReference.getString("name"));
+                    }
+                }).addOnFailureListener( response -> Log.d("Firestore", "Could not load laptops"));
+
+        db.collection("phones")
+                .get()
+                .addOnCompleteListener(response -> {
+                    for (QueryDocumentSnapshot documentReference: response.getResult()) {
+                        phonesList.add(new Product(documentReference.getReference()));
+                        Log.d("Phone", documentReference.getString("name"));
+                    }
+                }).addOnFailureListener( response -> Log.d("Firestore", "Could not load phones"));
+
+        db.collection("tablets")
+                .get()
+                .addOnCompleteListener(response -> {
+                    for (QueryDocumentSnapshot documentReference: response.getResult()) {
+                        tabletsList.add(new Product(documentReference.getReference()));
+                        Log.d("Tablet", documentReference.getString("name"));
+                    }
+                }).addOnFailureListener( response -> Log.d("Firestore", "Could not load tablets"));
+
+        SVD svd = new SVD(laptopsList, phonesList, tabletsList);
+        laptops_engine = new RecommendationEngine(svd.getLaptopLatentFactors(), laptopsList);
+        phones_engine = new RecommendationEngine(svd.getPhoneLatentFactors(), phonesList);
+        tablets_engine = new RecommendationEngine(svd.getTabletLatentFactors(), tabletsList);
+
         gestureDetector = new GestureDetector(this, new SwipeGestureListener());
 
         cardView.setOnTouchListener((v, event) -> {
@@ -53,56 +99,28 @@ public class MainActivity extends AppCompatActivity {
         });
 
         buttonLaptops.setOnClickListener(v -> {
-            currentCategory = "laptops";
-            fetchProductsByCategory();
+            homeLayout.setVisibility(View.GONE);
+            cardView.setVisibility(View.VISIBLE);
+            category = "laptops";
+            loadProduct(laptops_engine.getRecommendedProducts().get(0));
         });
         buttonPhones.setOnClickListener(v -> {
-            currentCategory = "phones";
-            fetchProductsByCategory();
+            homeLayout.setVisibility(View.GONE);
+            cardView.setVisibility(View.VISIBLE);
+            category = "phones";
+            loadProduct(phones_engine.getRecommendedProducts().get(0));
         });
         buttonTablets.setOnClickListener(v -> {
-            currentCategory = "tablets";
-            fetchProductsByCategory();
+            homeLayout.setVisibility(View.GONE);
+            cardView.setVisibility(View.VISIBLE);
+            category = "tablets";
+            loadProduct(tablets_engine.getRecommendedProducts().get(0));
         });
     }
-
-    private void initializeViews() {
-        homeLayout = findViewById(R.id.homeLayout);
-        buttonLaptops = findViewById(R.id.buttonLaptops);
-        buttonPhones = findViewById(R.id.buttonPhones);
-        buttonTablets = findViewById(R.id.buttonTablets);
-        productName = findViewById(R.id.productName);
-        productPrice = findViewById(R.id.productPrice);
-        productImage = findViewById(R.id.productImage);
-        cardView = findViewById(R.id.cardView);
-    }
-
-    private void fetchProductsByCategory() {
-        homeLayout.setVisibility(View.GONE);
-        cardView.setVisibility(View.VISIBLE);
-        productsRef = db.collection("products");
-
-        productsRef.whereEqualTo("category", currentCategory).get().addOnCompleteListener(task -> {
-            if (task.isSuccessful()) {
-                productList.clear();
-                for (QueryDocumentSnapshot document : task.getResult()) {
-                    Product product = document.toObject(Product.class);
-                    productList.add(product);
-                }
-                currentProductIndex = 0;
-                loadProduct(currentProductIndex);
-            } else {
-                Toast.makeText(this, "Failed to load products", Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
     @SuppressLint("DefaultLocale")
-    private void loadProduct(int index) {
-        if (!productList.isEmpty() && index >= 0 && index < productList.size()) {
-            Product product = productList.get(index);
+    private void loadProduct(Product product) {
+            this.product = product;
             productName.setText(product.getName());
-            productPrice.setText(String.format("$%.2f", product.getPrice()));
 
             // Load product image
             Glide.with(this)
@@ -111,16 +129,9 @@ public class MainActivity extends AppCompatActivity {
 
             // Make product name a clickable link
             productName.setOnClickListener(v -> {
-                if (product.getProductUrl() != null && !product.getProductUrl().isEmpty()) {
-                    Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(product.getProductUrl()));
-                    startActivity(browserIntent);
-                } else {
-                    Toast.makeText(this, "No profile available", Toast.LENGTH_SHORT).show();
-                }
+                Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(product.getProductUrl()));
+                startActivity(browserIntent);
             });
-        } else {
-            Toast.makeText(this, "No products available", Toast.LENGTH_SHORT).show();
-        }
     }
 
     private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
@@ -143,31 +154,27 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void onSwipeRight() {
-        if (!productList.isEmpty()) {
-            currentProductIndex = (currentProductIndex - 1 + productList.size()) % productList.size();
-            loadProduct(currentProductIndex);
+        if (category == "laptops") {
+            laptops_engine.handleSwipe(product, true);
         }
+        if (category == "tablets") {
+            tablets_engine.handleSwipe(product, true);
+        }
+        if (category == "phones") {
+            phones_engine.handleSwipe(product, true);
+        }
+
     }
 
     private void onSwipeLeft() {
-        if (!productList.isEmpty()) {
-            currentProductIndex = (currentProductIndex + 1) % productList.size();
-            loadProduct(currentProductIndex);
+        if (category == "laptops") {
+            laptops_engine.handleSwipe(product, false);
         }
-    }
-
-    @Override
-    protected void onSaveInstanceState(@NonNull Bundle outState) {
-        super.onSaveInstanceState(outState);
-        outState.putInt("currentProductIndex", currentProductIndex);
-        outState.putString("currentCategory", currentCategory);
-    }
-
-    @Override
-    protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
-        super.onRestoreInstanceState(savedInstanceState);
-        currentProductIndex = savedInstanceState.getInt("currentProductIndex");
-        currentCategory = savedInstanceState.getString("currentCategory");
-        fetchProductsByCategory();
+        if (category == "tablets") {
+            tablets_engine.handleSwipe(product, false);
+        }
+        if (category == "phones") {
+            phones_engine.handleSwipe(product, false);
+        }
     }
 }
