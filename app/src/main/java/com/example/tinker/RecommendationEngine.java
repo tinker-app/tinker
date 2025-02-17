@@ -34,10 +34,9 @@ public class RecommendationEngine {
 
         for (int i = 0; i < candidateProducts.size(); i++) {
             productNameToRowIndex.put(candidateProducts.get(i).getName(), i);
-            Log.e("ERROR", "Null product name at index: " + i);
+            Log.d("Product Mapping", "Name: " + candidateProducts.get(i).getName() +
+                    ", Index: " + productNameToRowIndex.get(candidateProducts.get(i).getName()));        }
 
-        }
-        Log.d("DEBUG", "Product index mapping: " + productNameToRowIndex);
 
         initializeFeaturePreferences();
     }
@@ -49,6 +48,7 @@ public class RecommendationEngine {
 
     public void handleSwipe(Product product, boolean isRightSwipe) {
         Log.d("DEBUG", "handleSwipe() called for product: " + product.getName() + ", Right Swipe: " + isRightSwipe);
+
         Integer productIndex = productNameToRowIndex.get(product.getName());
         if (productIndex == null){  Log.e("ERROR", "Product index not found for: " + product.getName());
             return;}
