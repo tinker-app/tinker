@@ -42,20 +42,14 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Initialize views
         initializeViews();
-
-        // Initialize product list (replace with API/database data later)
         initializeProductList();
-
-        // Initialize swipe gesture detector
         gestureDetector = new GestureDetector(this, new SwipeGestureListener());
         cardView.setOnTouchListener((v, event) -> {
             gestureDetector.onTouchEvent(event);
             return true;
         });
 
-        // Set click listeners for category buttons
         buttonLaptops.setOnClickListener(v -> {
             currentCategory = "laptops";
             switchToProductView();
@@ -69,7 +63,6 @@ public class MainActivity extends AppCompatActivity {
             switchToProductView();
         });
 
-        // Load the first product
         loadProduct(currentProductIndex);
     }
 

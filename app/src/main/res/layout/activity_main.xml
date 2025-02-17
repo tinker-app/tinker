@@ -115,7 +115,6 @@
                 android:layout_height="300dp"
                 android:contentDescription="Product Image"
                 android:scaleType="centerCrop"
-                android:src="@drawable/lenovo"
                 android:background="@color/light_gray" />
 
             <!-- Product Details -->
