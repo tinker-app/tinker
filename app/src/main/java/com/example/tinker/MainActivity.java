@@ -2,15 +2,21 @@ package com.example.tinker;
 
 import android.annotation.SuppressLint;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.animation.AccelerateInterpolator;
+import android.view.animation.DecelerateInterpolator;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 
@@ -22,13 +28,15 @@ import com.google.android.gms.tasks.Tasks;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class MainActivity extends AppCompatActivity {
 
     private FirebaseFirestore db;
     private LinearLayout homeLayout;
     private Button buttonLaptops, buttonPhones, buttonTablets;
-    private TextView productName;
+    private ImageButton buttonBack;
+    private TextView productName, productPrice;
     private ImageView productImage;
     private CardView cardView;
     private GestureDetector gestureDetector;
@@ -53,8 +61,10 @@ public class MainActivity extends AppCompatActivity {
         buttonLaptops = findViewById(R.id.buttonLaptops);
         buttonTablets = findViewById(R.id.buttonTablets);
         buttonPhones = findViewById(R.id.buttonPhones);
+        buttonBack = findViewById(R.id.buttonBack);
         productName = findViewById(R.id.productName);
         productImage = findViewById(R.id.productImage);
+        productPrice = findViewById(R.id.productPrice);
 
         // Initialize lists and Firestore
         laptopsList = new ArrayList<>();
@@ -131,6 +141,7 @@ public class MainActivity extends AppCompatActivity {
     @SuppressLint("ClickableViewAccessibility")
     private void setupGestureDetector() {
         gestureDetector = new GestureDetector(this, new SwipeGestureListener());
+
         cardView.setOnTouchListener((v, event) -> {
             gestureDetector.onTouchEvent(event);
             return true;
@@ -139,6 +150,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void setupButtonListeners() {
         buttonLaptops.setOnClickListener(v -> {
+            animateButtonTransition(buttonLaptops);
             homeLayout.setVisibility(View.GONE);
             cardView.setVisibility(View.VISIBLE);
             category = "laptops";
@@ -146,6 +158,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         buttonPhones.setOnClickListener(v -> {
+            animateButtonTransition(buttonPhones);
             homeLayout.setVisibility(View.GONE);
             cardView.setVisibility(View.VISIBLE);
             category = "phones";
@@ -153,27 +166,50 @@ public class MainActivity extends AppCompatActivity {
         });
 
         buttonTablets.setOnClickListener(v -> {
+            animateButtonTransition(buttonTablets);
             homeLayout.setVisibility(View.GONE);
             cardView.setVisibility(View.VISIBLE);
             category = "tablets";
             loadProduct(tablets_engine.getRecommendedProduct());
+        });
+
+        buttonBack.setOnClickListener(v -> {
+            cardView.setVisibility(View.GONE); // Hide product screen
+            homeLayout.setVisibility(View.VISIBLE); // Show category selection
         });
     }
 
     @SuppressLint("DefaultLocale")
     private void loadProduct(Product product) {
         this.product = product;
-        productName.setText(product.getName());
+        productPrice.setText("$" + String.valueOf(product.getPrice()));
+        if (product.getName().length() < 75) {
+            productName.setText(product.getName().strip());
+        }
+        else {
+            productName.setText(product.getName().strip().substring(0, Math.min(product.getName().strip().length(), 75)) + " ...");
+        }
 
         // Load product image
         Glide.with(this)
                 .load(product.getImageUrl())
                 .into(productImage);
+
+        // Make product name a clickable link
+//        productName.setOnClickListener(v -> {
+//            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(product.getProductUrl()));
+//            startActivity(browserIntent);
+//        });
     }
 
     private class SwipeGestureListener extends GestureDetector.SimpleOnGestureListener {
         private static final int SWIPE_THRESHOLD = 100;
         private static final int SWIPE_VELOCITY_THRESHOLD = 100;
+
+        @Override
+        public boolean onDown(@NonNull MotionEvent e) {
+            return true;
+        }
 
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
@@ -190,31 +226,76 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void animateSwipe(float translationX, Runnable onAnimationEnd) {
+        cardView.animate()
+                .translationX(translationX)
+                .rotation(translationX > 0 ? 15 : -15)
+                .alpha(0f)
+                .setDuration(300)
+                .withEndAction(() -> {
+                    cardView.setTranslationX(0);
+                    cardView.setRotation(0);
+                    cardView.setAlpha(1f);
+                    onAnimationEnd.run();
+                })
+                .start();
+    }
+
     private void onSwipeRight() {
-        if (category.equals("laptops")) {
-            laptops_engine.handleSwipe(product, true);
-            loadProduct(laptops_engine.getRecommendedProduct());
-        } else if (category.equals("tablets")) {
-            tablets_engine.handleSwipe(product, true);
-            loadProduct(tablets_engine.getRecommendedProduct());
-        } else if (category.equals("phones")) {
-            phones_engine.handleSwipe(product, true);
-            loadProduct(phones_engine.getRecommendedProduct());
-        }
-        Log.d("Product Loaded", product.getName());
+        animateSwipe(1000f, () -> {
+            if (category.equals("laptops")) {
+                laptops_engine.handleSwipe(product, true);
+                loadProduct(laptops_engine.getRecommendedProduct());
+            } else if (category.equals("tablets")) {
+                tablets_engine.handleSwipe(product, true);
+                loadProduct(tablets_engine.getRecommendedProduct());
+            } else if (category.equals("phones")) {
+                phones_engine.handleSwipe(product, true);
+                loadProduct(phones_engine.getRecommendedProduct());
+            }
+            Log.d("Product Loaded", product.getName());
+        });
     }
 
     private void onSwipeLeft() {
-        if (category.equals("laptops")) {
-            laptops_engine.handleSwipe(product, false);
-            loadProduct(laptops_engine.getRecommendedProduct());
-        } else if (category.equals("tablets")) {
-            tablets_engine.handleSwipe(product, false);
-            loadProduct(tablets_engine.getRecommendedProduct());
-        } else if (category.equals("phones")) {
-            phones_engine.handleSwipe(product, false);
-            loadProduct(phones_engine.getRecommendedProduct());
-        }
-        Log.d("Product Loaded", product.getName());
+        animateSwipe(-1000f, () -> {
+            if (category.equals("laptops")) {
+                laptops_engine.handleSwipe(product, false);
+                loadProduct(laptops_engine.getRecommendedProduct());
+            } else if (category.equals("tablets")) {
+                tablets_engine.handleSwipe(product, false);
+                loadProduct(tablets_engine.getRecommendedProduct());
+            } else if (category.equals("phones")) {
+                phones_engine.handleSwipe(product, false);
+                loadProduct(phones_engine.getRecommendedProduct());
+            }
+            Log.d("Product Loaded", product.getName());
+        });
+    }
+
+    private void enableButtons(boolean enabled) {
+        buttonLaptops.setEnabled(enabled);
+        buttonPhones.setEnabled(enabled);
+        buttonTablets.setEnabled(enabled);
+    }
+
+    // Animate the button when clicked
+    private void animateButtonTransition(Button button) {
+        button.animate()
+                .alpha(0f)
+                .scaleX(0.9f)
+                .scaleY(0.9f)
+                .setDuration(300)
+                .setInterpolator(new AccelerateInterpolator())
+                .withEndAction(() -> {
+                    button.animate()
+                            .alpha(1f)
+                            .scaleX(1f)
+                            .scaleY(1f)
+                            .setDuration(300)
+                            .setInterpolator(new DecelerateInterpolator())
+                            .start();
+                })
+                .start();
     }
 }

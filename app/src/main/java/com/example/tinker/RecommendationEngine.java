@@ -1,11 +1,9 @@
 package com.example.tinker;
 
-import android.util.Log;
-
 import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
-
+import android.util.Log;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -20,8 +18,8 @@ public class RecommendationEngine {
     private int num_likes = 0;
     private double alpha = 0.4; // SVD weight
     private double beta = 0.3;  // Dislike penalty
-    private final double[] featureWeights = {0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5};
-    private final double[] featurePreferences = new double[7];
+    private final double[] featureWeights = {0.5, 0.5, 0.5, 0.5, 0.5, 0.5};
+    private final double[] featurePreferences = new double[6];
     private final double learningRate = 0.1;
     private final Map<String, Integer> productNameToRowIndex = new HashMap<>();
     private List<Product> cart = new ArrayList<>();
@@ -42,7 +40,7 @@ public class RecommendationEngine {
     }
 
     private void initializeFeaturePreferences() {
-        double[] defaults = {0.7, 0.5, 0.6, 0.5, 0.7, 0.6, 0.5};
+        double[] defaults = {0.7, 0.5, 0.6, 0.5, 0.7, 0.6};
         System.arraycopy(defaults, 0, featurePreferences, 0, defaults.length);
     }
 
@@ -73,7 +71,7 @@ public class RecommendationEngine {
 
     private void updateFeatureWeights(Product product, boolean isRightSwipe) {
         double[] productFeatures = product.getAttributes();
-        for (int i = 0; i < 7; i++) {
+        for (int i = 0; i < 6; i++) {
             double featureDiff = Math.abs(productFeatures[i] - featurePreferences[i]);
             double similarity = 1 - featureDiff;
             double adjustment = learningRate * (isRightSwipe ? similarity : -similarity);
@@ -139,7 +137,7 @@ public class RecommendationEngine {
         double svdScore = userVector.dotProduct(productVector);
         double featureScore = 0;
 
-        for (int i = 0; i < 7; i++) {
+        for (int i = 0; i < 6; i++) {
             featureScore += featureWeights[i] * (1 - Math.abs(features[i] - featurePreferences[i]));
         }
 
