@@ -3,7 +3,7 @@
 Looking through Amazon Search queries can get boring. This app tries to make this process easier/more fun.
 
 ## What it does
-This app allows users to doomscroll through thousands of Amazon product listings in as a Tinder alternative for tech enthusiasts. Each left or right swipe takes into consideration user's preferences (Either by using the latent factors matrix given by SVD or by using incremental change formula for Stochastic gradient descent). As the user keeps scrolling, the results hone in on what the user might prefer according to the decisions made by the user(Kind of like Akinator).
+This app allows users to doom-scroll through thousands of Amazon product listings in as a Tinder alternative for tech enthusiasts. Each left or right swipe takes into consideration user's preferences (Either by using the latent factors matrix given by SVD or by using incremental change formula for Stochastic gradient descent). As the user keeps scrolling, the results hone in on what the user might prefer according to the decisions made by the user(Kind of like Akinator).
 
 ## How we built it
 The database is stored in Firestore and it contains information regarding about a thousand tablets, phones, and laptops. The app is built on Android as a proof of concept as the three of us are familar with  this stack. We used a Python Script utilizing Selenium and Chrome Webdriver to crawl through Amazon search results in order to collect the products and process them into Vectors. The app queries this pre-processed database and applies several Numerical algorithms with addition to user actions to predict the most accurate guesses for what a user prefers the most.
@@ -15,10 +15,10 @@ The database is stored in Firestore and it contains information regarding about 
 - Callback functions and Thread holds were required to stop the Android UI thread from breaking the app. This required some knowledge of Operating systems concepts that we learned on the fly.
 
 ## Accomplishments that we're proud of
-- Successfuly loaded upto 1000+ Phones, Tablets, Laptops onto our database, processed and cleaned the data into vectors, and applied Numerical methods onto them to decisively produce reliable guesses for User's preferences.
+- Successfuly loaded upto 1000+ Phones, Tablets, Laptops onto our database, processed and cleaned the data into vectors, and applied Numerical Methods onto them to decisively produce reliable guesses for User's preferences.
 
 ## What we learned
 We learned different aspects of web scraping with Selenium, managing multiple threads while loading a large amount of data onto an Android app(Asynchronously), Using Singular Value Decomposition and Stchastic Gradient Descent for augmenting the accuracy of a feature vector, while providing the closet approximate guesses for the solution vector using Cosine Similarity.
 
 ## What's next for Tinker
-Ours goals include real-time updates, custom search queries for users, custom product categories and filters. We also hope to store a database of feature vectors for each user so that their preferences are retained.
+Our goals include real-time updates, custom search queries for users, custom product categories and filters. We also hope to store a database of feature vectors for each user so that their preferences are retained.
