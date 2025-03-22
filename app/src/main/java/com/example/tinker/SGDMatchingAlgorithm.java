@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Random;
 
 public class SGDMatchingAlgorithm implements MatchingAlgorithm{
-    private double learning_rate = 0.1;
+    private double learning_rate = 0.3;
     private RealVector estimate_vector;
     private final List<ProductSerializable> products;
     private ArrayList<RealVector> product_vectors;
