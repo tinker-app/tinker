@@ -4,6 +4,9 @@
 |------|------|
 |<img src="https://github.com/tinker-app/tinker/blob/main/home.png?raw=true" width="250px">|<img src="https://github.com/tinker-app/tinker/blob/main/usage_gif.gif?raw=true" width="250px">|
 
+## Running the app
+Use the attached package file(**test-app.apk**) to run the app on an Android device
+
 ## Inspiration
 Looking through Amazon Search queries can get boring. This app tries to make this process easier/more fun.
 
