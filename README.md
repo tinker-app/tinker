@@ -2,7 +2,7 @@
 
 | Home | Example usage |
 |------|------|
-|<img src="https://github.com/tinker-app/tinker/blob/main/home.png?raw=true" width="400px">|<img src="https://github.com/tinker-app/tinker/blob/main/usage_gif.gif?raw=true" width="400px">|
+|<img src="https://github.com/tinker-app/tinker/blob/main/home.png?raw=true" width="250px">|<img src="https://github.com/tinker-app/tinker/blob/main/usage_gif.gif?raw=true" width="250px">|
 
 ## Inspiration
 Looking through Amazon Search queries can get boring. This app tries to make this process easier/more fun.
