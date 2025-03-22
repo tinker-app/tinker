@@ -1,7 +1,7 @@
 # Tinker
 
 | Home | Example usage |
-|------|---------|
+|------|------|
 |<img src="https://github.com/tinker-app/tinker/blob/main/home.png?raw=true" width="400px">|<img src="https://github.com/tinker-app/tinker/blob/main/usage_gif.gif?raw=true" width="400px">|
 
 ## Inspiration
